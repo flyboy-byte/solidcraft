@@ -669,6 +669,38 @@ fn the_spacing_gets_a_canvas_arrow_along_the_pattern_direction() {
     assert_eq!(dir, Some(solidcraft_engine::geom::Vec3::Y));
 }
 
+/// Dragging a spacing arrow past its start flips the direction, as typing a negative spacing does
+/// (#5497): the first direction's arrow and the second's both read a negative value.
+#[test]
+fn dragging_a_spacing_arrow_past_zero_gives_a_negative_spacing() {
+    let (mut h, id) = open("sketch.pattern.rectangular");
+    h.app.dialog.as_mut().unwrap().inputs[0].items = vec![Sel::SketchCurve { id }];
+    h.app.dialog.as_mut().unwrap().inputs[1].items = vec![Sel::Axis { name: "X".into() }];
+    h.app.dialog.as_mut().unwrap().inputs[2].items = vec![Sel::Axis { name: "Y".into() }];
+    rect(&mut h, "3", "20", "2", "10");
+    // From above, so both arrows lie across the screen.
+    h.step(&json!({"camera": {"yaw": 0.4, "pitch": 1.2}})).unwrap();
+    h.frames(5);
+    let spacing = |h: &crate::scenario::Harness, second: bool| {
+        let Some(Kind::SketchModify(Mod::PatternRect { spacing, spacing2, .. })) = h.app.dialog.as_ref().map(|d| &d.kind) else {
+            panic!("the pattern window")
+        };
+        h.app.session.doc.eval(if second { spacing2 } else { spacing }, solidcraft_engine::doc::expr::Kind::Length).unwrap()
+    };
+    let (at, dir) = crate::canvas::anchor(&h.app, h.app.dialog.as_ref().unwrap()).expect("an anchor");
+    let dir = dir.expect("a direction");
+    let to = at - dir * 10.0;
+    h.step(&json!({"drag": [{"handle": "arrow"}, {"world": [to.x, to.y, to.z]}], "ctrl": true})).unwrap();
+    let v = spacing(&h, false);
+    assert!((v + 10.0).abs() < 0.5, "dragging 10 mm back gave {v}");
+    h.frames(3);
+    let (at, _) = crate::canvas::anchor(&h.app, h.app.dialog.as_ref().unwrap()).expect("an anchor");
+    let dir2 = crate::sketch_modify_ui::arrow2(&h.app, h.app.dialog.as_ref().unwrap()).expect("a second direction");
+    let to = at - dir2 * 6.0;
+    h.step(&json!({"drag": [{"handle": "arrow2"}, {"world": [to.x, to.y, to.z]}], "ctrl": true})).unwrap();
+    assert!(spacing(&h, true) < 0.0, "the second arrow stayed positive: {}", spacing(&h, true));
+}
+
 /// A sketch holding one circle 30 mm out and a lone point at the origin, with the circular
 /// pattern window open on it and both inputs filled. The point is the centre the pattern turns
 /// around; the command has no default for it. Returns the centre's bare point id.
