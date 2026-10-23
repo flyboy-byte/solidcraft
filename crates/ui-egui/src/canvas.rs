@@ -513,16 +513,20 @@ fn draw(app: &SolveApp, ui: &mut egui::Ui, painter: &egui::Painter, proj: &Proj,
     } else {
         1.0
     };
-    // Extrudes, moves and pattern spacings go either way; radii and thicknesses stay positive.
-    let signed = matches!(
-        d.kind,
+    // Extrudes, moves, pattern spacings and one-sided sketch offsets go either way (#5497);
+    // radii, thicknesses, depths and heights stay positive. A symmetric offset takes the
+    // distance's size only, so a drag past its curve would just turn the arrow round.
+    let signed = match &d.kind {
         Kind::Extrude { .. }
-            | Kind::Move { .. }
-            | Kind::Section { .. }
-            | Kind::OffsetPlane { .. }
-            | Kind::OffsetFaces { .. }
-            | Kind::SketchModify(crate::sketch_modify_ui::Mod::Move { .. } | crate::sketch_modify_ui::Mod::PatternRect { .. })
-    );
+        | Kind::Move { .. }
+        | Kind::Section { .. }
+        | Kind::OffsetPlane { .. }
+        | Kind::OffsetFaces { .. }
+        | Kind::PatternRect { .. } => true,
+        Kind::SketchModify(crate::sketch_modify_ui::Mod::Move { .. } | crate::sketch_modify_ui::Mod::PatternRect { .. }) => true,
+        Kind::SketchModify(crate::sketch_modify_ui::Mod::Offset { mode, .. }) => !crate::sketch_modify_ui::offset_symmetric(*mode),
+        _ => false,
+    };
     let mut focus = std::mem::take(&mut d.focus);
     let half_height = app.cam.half_height();
     let axis = revolve_axis(app, d);
