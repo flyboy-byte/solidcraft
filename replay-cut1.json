@@ -1,0 +1,18 @@
+{
+  "commands": [
+    {
+      "command": "solid.extrude",
+      "params": {
+        "direction": "positive",
+        "distance": "-13",
+        "face": [
+          64.99971499769515,
+          26.903575403018237,
+          -6.693677366166867
+        ],
+        "face_body": "Body1 (1)",
+        "operation": "cut"
+      }
+    }
+  ]
+}
