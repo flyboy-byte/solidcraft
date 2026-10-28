@@ -501,6 +501,9 @@ fn hebrew_reads_right_to_left_in_the_built_in_font() {
     assert!((left - reach(&text_geometry_in(None, "a", Vec2::ZERO, 10.0, 0.0).unwrap()).0).abs() < 1e-6, "a stays first");
     // Text without right-to-left characters keeps its width.
     assert!(m.line_width("ab", 10.0).unwrap() > 0.0);
+    // A line break inside the line ends a paragraph of the bidirectional algorithm; the text after it still counts.
+    let after = "\u{5D1}\u{5D1}\u{5D1}\u{5D1}";
+    assert!(m.line_width(&format!("\u{5D0}\n{after}"), 10.0).unwrap() > m.line_width(after, 10.0).unwrap());
 }
 
 #[test]

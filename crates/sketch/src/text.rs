@@ -299,15 +299,17 @@ impl<'a> TextMetrics<'a> {
         if !info.has_rtl() {
             return None;
         }
-        let paragraph = info.paragraphs.first()?;
         let font = harfrust::FontRef::from_index(self.bytes, self.index).ok()?;
         let data = self.shaper.get_or_init(|| Some(harfrust::ShaperData::new(&font))).as_ref()?;
         let shaper = data.shaper(&font).build();
         let kerning_off = [Feature::new(Tag::new(b"kern"), 0, ..)];
-        let (levels, runs) = info.visual_runs(paragraph, paragraph.range.clone());
         let (mut out, mut pen, mut gap) = (Vec::new(), 0.0f64, 0.0f64);
-        for run in runs {
-            let rtl = levels.get(run.start)?.is_rtl();
+        // A line break in the line ends a paragraph of the algorithm; the paragraphs follow one another.
+        let runs = info.paragraphs.iter().flat_map(|paragraph| {
+            let (levels, runs) = info.visual_runs(paragraph, paragraph.range.clone());
+            runs.into_iter().map(move |run| (levels.get(run.start).is_some_and(|l| l.is_rtl()), run))
+        });
+        for (rtl, run) in runs {
             let mut buffer = UnicodeBuffer::new();
             buffer.push_str(line.get(run.clone())?);
             buffer.set_direction(if rtl { Direction::RightToLeft } else { Direction::LeftToRight });
