@@ -13,7 +13,7 @@ type Key = (i64, i64, i64);
 /// 1e-5 mm short of their neighbours, far more than the tolerance that ranks equal areas (#8284).
 pub(super) fn join_tolerance(mesh: &Mesh) -> f64 {
     let diagonal = mesh.bounds().diagonal();
-    (diagonal * 1e-6).max((diagonal * 1e-8).max(1e-9))
+    (diagonal * 1e-6).max(1e-9)
 }
 
 /// Boundary of the picked face as drawn: a closed surface cut into pieces (a cylinder or a
